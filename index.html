@@ -142,16 +142,16 @@
     });
 
     let channels = JSON.parse(localStorage.getItem('channels')) || [
-      { id: 1, name: 'Bank Transfer', rate: 50 },
-      { id: 2, name: 'Cash', rate: 30 },
-      { id: 3, name: 'POS', rate: 20 }
+      { id: 1, name: 'person 1', rate: 50 },
+      { id: 2, name: 'person 2', rate: 30 },
+      { id: 3, name: 'person 3', rate: 20 }
     ];
 
     let transactions = JSON.parse(localStorage.getItem('transactions')) || [
       { id: 1, date: '2026-04-01', channel: 'Bank Transfer', amount: 250000 },
-      { id: 2, date: '2026-04-01', channel: 'Cash', amount: 120000 },
-      { id: 3, date: '2026-04-02', channel: 'POS', amount: 80000 },
-      { id: 4, date: '2026-04-02', channel: 'Bank Transfer', amount: 150000 }
+      { id: 2, date: '2026-04-01', channel: 'person 2', amount: 120000 },
+      { id: 3, date: '2026-04-02', channel: 'person 3', amount: 80000 },
+      { id: 4, date: '2026-04-02', channel: 'person 1', amount: 150000 }
     ];
 
     const totalReceivedBadge = document.getElementById('totalReceivedBadge');
