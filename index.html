@@ -1,1 +1,378 @@
+import React, { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { PieChart, Pie, Tooltip, Cell, ResponsiveContainer } from "recharts";
+import { Wallet, Landmark, Smartphone, Plus, Trash2 } from "lucide-react";
+
+const initialChannels = [
+  { id: 1, name: "Bank Transfer", icon: "bank", rate: 50 },
+  { id: 2, name: "Cash", icon: "cash", rate: 30 },
+  { id: 3, name: "POS", icon: "pos", rate: 20 },
+];
+
+const sampleTransactions = [
+  { id: 1, date: "2026-04-01", channel: "Bank Transfer", amount: 250000 },
+  { id: 2, date: "2026-04-01", channel: "Cash", amount: 120000 },
+  { id: 3, date: "2026-04-02", channel: "POS", amount: 80000 },
+  { id: 4, date: "2026-04-02", channel: "Bank Transfer", amount: 150000 },
+];
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function iconFor(type) {
+  if (type === "bank") return <Landmark className="h-4 w-4" />;
+  if (type === "pos") return <Smartphone className="h-4 w-4" />;
+  return <Wallet className="h-4 w-4" />;
+}
+
+export default function ChannelFundsApportionerApp() {
+  const [channels, setChannels] = useState(initialChannels);
+  const [transactions, setTransactions] = useState(sampleTransactions);
+  const [newChannel, setNewChannel] = useState({ name: "", rate: "", icon: "cash" });
+  const [entry, setEntry] = useState({ date: "2026-04-03", channel: "Bank Transfer", amount: "" });
+
+  const totalRate = useMemo(
+    () => channels.reduce((sum, item) => sum + Number(item.rate || 0), 0),
+    [channels]
+  );
+
+  const totalReceived = useMemo(
+    () => transactions.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    [transactions]
+  );
+
+  const channelSummary = useMemo(() => {
+    return channels.map((channel) => {
+      const received = transactions
+        .filter((t) => t.channel === channel.name)
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+      const apportioned = totalRate > 0 ? (totalReceived * Number(channel.rate || 0)) / totalRate : 0;
+      const variance = received - apportioned;
+
+      return {
+        ...channel,
+        received,
+        apportioned,
+        variance,
+      };
+    });
+  }, [channels, transactions, totalRate, totalReceived]);
+
+  const chartData = channelSummary.map((item) => ({
+    name: item.name,
+    value: item.received,
+  }));
+
+  const addChannel = () => {
+    if (!newChannel.name || !newChannel.rate) return;
+    setChannels((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        name: newChannel.name,
+        rate: Number(newChannel.rate),
+        icon: newChannel.icon,
+      },
+    ]);
+    setNewChannel({ name: "", rate: "", icon: "cash" });
+  };
+
+  const addTransaction = () => {
+    if (!entry.date || !entry.channel || !entry.amount) return;
+    setTransactions((prev) => [
+      {
+        id: Date.now(),
+        date: entry.date,
+        channel: entry.channel,
+        amount: Number(entry.amount),
+      },
+      ...prev,
+    ]);
+    setEntry((prev) => ({ ...prev, amount: "" }));
+  };
+
+  const deleteTransaction = (id) => {
+    setTransactions((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Funds Channel Tracker</h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Record income by channel and automatically apportion totals based on your chosen percentages.
+            </p>
+          </div>
+          <Badge className="rounded-full px-4 py-2 text-sm">Total received: {formatCurrency(totalReceived)}</Badge>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="rounded-2xl shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Banked / Digital</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold">
+                {formatCurrency(
+                  transactions
+                    .filter((t) => ["Bank Transfer", "POS"].includes(t.channel))
+                    .reduce((sum, t) => sum + Number(t.amount || 0), 0)
+                )}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Cash Received</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold">
+                {formatCurrency(
+                  transactions.filter((t) => t.channel === "Cash").reduce((sum, t) => sum + Number(t.amount || 0), 0)
+                )}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Apportion Rule Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2 text-2xl font-semibold">{totalRate}%</p>
+              <Progress value={Math.min(totalRate, 100)} />
+              <p className="mt-2 text-xs text-slate-500">Ideal total is 100%.</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 rounded-2xl">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="settings">Channels & Rules</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="grid gap-4 lg:grid-cols-5">
+              <Card className="rounded-2xl shadow-sm lg:col-span-3">
+                <CardHeader>
+                  <CardTitle>Channel Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Channel</TableHead>
+                        <TableHead>Received</TableHead>
+                        <TableHead>Apportioned</TableHead>
+                        <TableHead>Variance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {channelSummary.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2 font-medium">
+                              {iconFor(item.icon)} {item.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatCurrency(item.received)}</TableCell>
+                          <TableCell>{formatCurrency(item.apportioned)}</TableCell>
+                          <TableCell className={item.variance >= 0 ? "text-emerald-600" : "text-red-600"}>
+                            {formatCurrency(item.variance)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl shadow-sm lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Funds by Channel</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={100} label>
+                        {chartData.map((_, index) => (
+                          <Cell key={index} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="transactions">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="rounded-2xl shadow-sm lg:col-span-1">
+                <CardHeader>
+                  <CardTitle>Add Transaction</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input type="date" value={entry.date} onChange={(e) => setEntry({ ...entry, date: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Channel</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={entry.channel}
+                      onChange={(e) => setEntry({ ...entry, channel: e.target.value })}
+                    >
+                      {channels.map((channel) => (
+                        <option key={channel.id} value={channel.name}>
+                          {channel.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      placeholder="Enter amount"
+                      value={entry.amount}
+                      onChange={(e) => setEntry({ ...entry, amount: e.target.value })}
+                    />
+                  </div>
+                  <Button className="w-full rounded-xl" onClick={addTransaction}>
+                    <Plus className="mr-2 h-4 w-4" /> Save Transaction
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl shadow-sm lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Recent Transactions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Channel</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.date}</TableCell>
+                          <TableCell>{item.channel}</TableCell>
+                          <TableCell>{formatCurrency(item.amount)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => deleteTransaction(item.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="rounded-2xl shadow-sm lg:col-span-1">
+                <CardHeader>
+                  <CardTitle>Add Channel</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Channel name</Label>
+                    <Input
+                      placeholder="e.g. WhatsApp Sales"
+                      value={newChannel.name}
+                      onChange={(e) => setNewChannel({ ...newChannel, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Apportion percentage</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g. 25"
+                      value={newChannel.rate}
+                      onChange={(e) => setNewChannel({ ...newChannel, rate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Icon style</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={newChannel.icon}
+                      onChange={(e) => setNewChannel({ ...newChannel, icon: e.target.value })}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bank">Bank</option>
+                      <option value="pos">POS</option>
+                    </select>
+                  </div>
+                  <Button className="w-full rounded-xl" onClick={addChannel}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Channel
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl shadow-sm lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Active Channels</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Channel</TableHead>
+                        <TableHead>Rule</TableHead>
+                        <TableHead>Share</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {channels.map((channel) => (
+                        <TableRow key={channel.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2 font-medium">
+                              {iconFor(channel.icon)} {channel.name}
+                            </div>
+                          </TableCell>
+                          <TableCell>{channel.rate}%</TableCell>
+                          <TableCell>{totalRate > 0 ? `${((channel.rate / totalRate) * 100).toFixed(1)}% of pool` : "0%"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
 
