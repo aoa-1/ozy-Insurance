@@ -3,157 +3,184 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ozy Investments</title>
+  <title>Client Revenue Distribution Tracker</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="app-container">
     <div class="wrapper">
       <div class="header">
         <div>
-          <h1>Ozy Investments</h1>
-          <p>Record client revenue and automatically show how each payment is distributed.</p>
+          <h1>Client Revenue Distribution Tracker</h1>
+          <p>Shared revenue tracking for your team with Supabase login and cloud sync.</p>
         </div>
-        <div class="badge" id="totalRevenueBadge">Total revenue: ₦0</div>
+        <div class="badge" id="sessionBadge">Not signed in</div>
       </div>
 
-      <div class="stats-grid">
-        <div class="card">
-          <h3>Total Revenue</h3>
-          <div class="amount" id="totalRevenue">₦0</div>
-        </div>
-        <div class="card">
-          <h3>Total Clients</h3>
-          <div class="amount" id="totalClients">0</div>
-        </div>
-        <div class="card">
-          <h3>Distribution Rule Status</h3>
-          <div class="amount" id="ruleStatus">0%</div>
-          <div class="progress-track">
-            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-          </div>
-          <div class="small-note">Ideal total is 100%.</div>
-        </div>
-      </div>
-
-      <div class="tabs">
-        <button class="tab-button active" data-tab="overview">Overview</button>
-        <button class="tab-button" data-tab="revenue">Revenue Entry</button>
-        <button class="tab-button" data-tab="distributions">Distribution Report</button>
-        <button class="tab-button" data-tab="settings">People & Rules</button>
-      </div>
-
-      <div id="overview" class="tab-content">
-        <div class="grid-5">
-          <div class="card">
-            <h2>Revenue Summary by Person</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Person</th>
-                  <th>Share Rule</th>
-                  <th>Distributed Amount</th>
-                </tr>
-              </thead>
-              <tbody id="summaryTableBody"></tbody>
-            </table>
-          </div>
-          <div class="card">
-            <h2>Quick Overview</h2>
-            <div class="chart-box" id="chartBox">Client revenue and distribution summary</div>
-          </div>
-        </div>
-      </div>
-
-      <div id="revenue" class="tab-content" style="display:none;">
+      <div class="card" id="authCard" style="margin-bottom: 24px;">
+        <h2>Team Login</h2>
         <div class="grid-2">
-          <div class="card">
-            <h2>Record Client Revenue</h2>
+          <div>
             <div class="form-group">
-              <label for="clientName">Client Name</label>
-              <input type="text" id="clientName" placeholder="e.g. Heirs Insurance" />
+              <label for="authEmail">Email</label>
+              <input type="email" id="authEmail" placeholder="team@example.com" />
             </div>
             <div class="form-group">
-              <label for="revenueDate">Date</label>
-              <input type="date" id="revenueDate" />
+              <label for="authPassword">Password</label>
+              <input type="password" id="authPassword" placeholder="Enter password" />
             </div>
-            <div class="form-group">
-              <label for="revenueChannel">Revenue Channel</label>
-              <input type="text" id="revenueChannel" placeholder="e.g. Transfer, POS, Cash" />
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button id="signInBtn">Sign In</button>
+              <button id="signUpBtn">Create Account</button>
+              <button id="signOutBtn" class="ghost" style="display:none;">Sign Out</button>
             </div>
-            <div class="form-group">
-              <label for="revenueReference">Reference</label>
-              <input type="text" id="revenueReference" placeholder="e.g. Payment reference" />
-            </div>
-            <div class="form-group">
-              <label for="revenueAmount">Amount</label>
-              <input type="number" id="revenueAmount" placeholder="Enter amount" />
-            </div>
-            <button id="addRevenueBtn">Save Revenue</button>
+            <div class="small-note" id="authMessage">Create approved team accounts in Supabase Auth.</div>
           </div>
+          <div>
+            <h3>Setup</h3>
+            <div class="small-note">
+              Add your Supabase project URL and anon key in the script below, then create the required tables and policies.
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <div id="appShell" style="display:none;">
+        <div class="stats-grid">
           <div class="card">
-            <h2>Revenue Records</h2>
+            <h3>Total Revenue</h3>
+            <div class="amount" id="totalRevenue">₦0</div>
+          </div>
+          <div class="card">
+            <h3>Total Clients</h3>
+            <div class="amount" id="totalClients">0</div>
+          </div>
+          <div class="card">
+            <h3>Total Records</h3>
+            <div class="amount" id="totalRecords">0</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-button active" data-tab="overview">Overview</button>
+          <button class="tab-button" data-tab="revenue">Revenue Entry</button>
+          <button class="tab-button" data-tab="distributions">Distribution Report</button>
+          <button class="tab-button" data-tab="settings">People</button>
+        </div>
+
+        <div id="overview" class="tab-content">
+          <div class="grid-5">
+            <div class="card">
+              <h2>Distribution Summary by Person</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Person</th>
+                    <th>Total Received</th>
+                  </tr>
+                </thead>
+                <tbody id="summaryTableBody"></tbody>
+              </table>
+            </div>
+            <div class="card">
+              <h2>Overview</h2>
+              <div class="chart-box">Live shared data from Supabase</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="revenue" class="tab-content" style="display:none;">
+          <div class="grid-2">
+            <div class="card" id="revenueFormCard">
+              <h2>Record Client Revenue</h2>
+              <div class="form-group">
+                <label for="clientName">Client Name</label>
+                <input type="text" id="clientName" placeholder="e.g. Heirs Insurance" />
+              </div>
+              <div class="form-group">
+                <label for="revenueDate">Date</label>
+                <input type="date" id="revenueDate" />
+              </div>
+              <div class="form-group">
+                <label for="revenueChannel">Revenue Channel</label>
+                <input type="text" id="revenueChannel" placeholder="e.g. Transfer, POS, Cash" />
+              </div>
+              <div class="form-group">
+                <label for="revenueReference">Reference</label>
+                <input type="text" id="revenueReference" placeholder="Payment reference" />
+              </div>
+              <div class="form-group">
+                <label for="revenueAmount">Amount</label>
+                <input type="number" id="revenueAmount" placeholder="Enter amount" />
+              </div>
+              <div class="form-group">
+                <label>Manual Distribution</label>
+                <div id="distributionInputs"></div>
+                <div class="small-note">Assign percentages for this revenue. Total must equal 100%.</div>
+              </div>
+              <button id="addRevenueBtn">Save Revenue</button>
+            </div>
+
+            <div class="card">
+              <h2>Revenue Records</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Channel</th>
+                    <th>Amount</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="revenueTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="distributions" class="tab-content" style="display:none;">
+          <div class="card">
+            <h2>Distribution Report</h2>
             <table>
               <thead>
                 <tr>
                   <th>Date</th>
                   <th>Client</th>
-                  <th>Channel</th>
-                  <th>Amount</th>
-                  <th>Action</th>
+                  <th>Total Revenue</th>
+                  <th>Distribution</th>
                 </tr>
               </thead>
-              <tbody id="revenueTableBody"></tbody>
+              <tbody id="distributionTableBody"></tbody>
             </table>
           </div>
         </div>
-      </div>
 
-      <div id="distributions" class="tab-content" style="display:none;">
-        <div class="card">
-          <h2>Distribution Report per Revenue</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Client</th>
-                <th>Total Revenue</th>
-                <th>Distribution</th>
-              </tr>
-            </thead>
-            <tbody id="distributionTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="settings" class="tab-content" style="display:none;">
-        <div class="grid-2">
-          <div class="card">
-            <h2>Add Distribution Person</h2>
-            <div class="form-group">
-              <label for="personName">Person Name</label>
-              <input type="text" id="personName" placeholder="e.g. Person 4" />
+        <div id="settings" class="tab-content" style="display:none;">
+          <div class="grid-2">
+            <div class="card">
+              <h2>Add Person</h2>
+              <div class="form-group">
+                <label for="personName">Person Name</label>
+                <input type="text" id="personName" placeholder="e.g. Person 4" />
+              </div>
+              <button id="addPersonBtn">Add Person</button>
+              <div class="small-note">People added here become selectable during revenue distribution.</div>
             </div>
-            <div class="form-group">
-              <label for="personRate">Distribution Percentage</label>
-              <input type="number" id="personRate" placeholder="e.g. 25" />
-            </div>
-            <button id="addPersonBtn">Add Person</button>
-          </div>
 
-          <div class="card">
-            <h2>Active Distribution Rules</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Person</th>
-                  <th>Rule</th>
-                  <th>Share</th>
-                </tr>
-              </thead>
-              <tbody id="peopleTableBody"></tbody>
-            </table>
+            <div class="card">
+              <h2>Active People</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="peopleTableBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -161,213 +188,118 @@
   </div>
 
   <script>
+    const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
+    const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
+
     const naira = new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
       maximumFractionDigits: 0
     });
 
-    let people = JSON.parse(localStorage.getItem('people')) || [
-      { id: 1, name: 'Person 1' },
-      { id: 2, name: 'Person 2' },
-      { id: 3, name: 'Person 3' }
-    ];
-
-    let revenues = JSON.parse(localStorage.getItem('revenues_manual_distribution')) || [
-      {
-        id: 1,
-        clientName: 'Heirs Insurance',
-        date: '2026-04-04',
-        channel: 'Transfer',
-        reference: 'HIR-001',
-        amount: 250000,
-        distribution: [
-          { name: 'Person 1', percentage: 50, amount: 125000 },
-          { name: 'Person 2', percentage: 30, amount: 75000 },
-          { name: 'Person 3', percentage: 20, amount: 50000 }
-        ]
-      },
-      {
-        id: 2,
-        clientName: 'Premium Client A',
-        date: '2026-04-04',
-        channel: 'POS',
-        reference: 'PCA-002',
-        amount: 120000,
-        distribution: [
-          { name: 'Person 1', percentage: 20, amount: 24000 },
-          { name: 'Person 2', percentage: 40, amount: 48000 },
-          { name: 'Person 3', percentage: 40, amount: 48000 }
-        ]
-      }
-    ];
-
     const revenueDate = document.getElementById('revenueDate');
     revenueDate.value = new Date().toISOString().split('T')[0];
 
-    const revenueCard = document.querySelector('#revenue .card');
-    const peopleCard = document.querySelector('#settings .card');
-    const revenueTableBody = document.getElementById('revenueTableBody');
-    const distributionTableBody = document.getElementById('distributionTableBody');
-    const summaryTableBody = document.getElementById('summaryTableBody');
-    const peopleTableBody = document.getElementById('peopleTableBody');
+    const sessionBadge = document.getElementById('sessionBadge');
+    const authMessage = document.getElementById('authMessage');
+    const appShell = document.getElementById('appShell');
+    const signOutBtn = document.getElementById('signOutBtn');
 
-    function saveData() {
-      localStorage.setItem('people', JSON.stringify(people));
-      localStorage.setItem('revenues_manual_distribution', JSON.stringify(revenues));
+    let supabase = null;
+    let currentUser = null;
+    let people = [];
+    let revenues = [];
+
+    function setAuthMessage(message, isError = false) {
+      authMessage.textContent = message;
+      authMessage.style.color = isError ? '#dc2626' : '';
     }
 
-    function getTotalRevenue() {
-      return revenues.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    function ensureSupabase() {
+      if (!SUPABASE_URL || SUPABASE_URL.includes('PASTE_YOUR') || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes('PASTE_YOUR')) {
+        setAuthMessage('Add your Supabase URL and anon key first.', true);
+        return false;
+      }
+      if (!supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+      return true;
     }
 
-    function getDistributionTotalsByPerson() {
+    function renderDistributionInputs() {
+      const container = document.getElementById('distributionInputs');
+      container.innerHTML = people.map(person => `
+        <div class="form-group">
+          <label for="dist_${person.id}">${person.name} Percentage</label>
+          <input type="number" id="dist_${person.id}" class="distribution-percentage" data-person-id="${person.id}" data-person-name="${person.name}" placeholder="Enter percentage for ${person.name}" min="0" max="100" step="0.01" />
+        </div>
+      `).join('');
+    }
+
+    function renderDashboard() {
+      const totalRevenue = revenues.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const totalClients = new Set(revenues.map(item => item.client_name)).size;
+      document.getElementById('totalRevenue').textContent = naira.format(totalRevenue);
+      document.getElementById('totalClients').textContent = totalClients;
+      document.getElementById('totalRecords').textContent = revenues.length;
+    }
+
+    function renderSummary() {
       const totals = {};
       people.forEach(person => {
         totals[person.name] = 0;
       });
 
       revenues.forEach(revenue => {
-        (revenue.distribution || []).forEach(item => {
-          totals[item.name] = (totals[item.name] || 0) + Number(item.amount || 0);
+        (revenue.distributions || []).forEach(item => {
+          totals[item.person_name] = (totals[item.person_name] || 0) + Number(item.amount || 0);
         });
       });
 
-      return totals;
-    }
-
-    function ensureDistributionBuilder() {
-      if (!document.getElementById('distributionInputs')) {
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = `
-          <div class="form-group">
-            <label>Manual Distribution</label>
-            <div id="distributionInputs"></div>
-            <div class="small-note" id="distributionNote">Assign a percentage to each person for this specific revenue entry. Total should be 100%.</div>
-          </div>
-        `;
-        revenueCard.insertBefore(wrapper, document.getElementById('addRevenueBtn'));
-      }
-
-      if (!document.getElementById('peopleActionNote')) {
-        const note = document.createElement('div');
-        note.id = 'peopleActionNote';
-        note.className = 'small-note';
-        note.textContent = 'People added here become available for manual distribution on each revenue entry.';
-        peopleCard.appendChild(note);
-      }
-    }
-
-    function renderDistributionInputs() {
-      ensureDistributionBuilder();
-      const container = document.getElementById('distributionInputs');
-      container.innerHTML = people.map(person => `
-        <div class="form-group">
-          <label for="dist_${person.id}">${person.name} Percentage</label>
-          <input type="number" id="dist_${person.id}" class="distribution-percentage" data-person-name="${person.name}" placeholder="Enter percentage for ${person.name}" min="0" max="100" step="0.01" />
-        </div>
-      `).join('');
-    }
-
-    function renderDashboard() {
-      const totalRevenue = getTotalRevenue();
-      document.getElementById('totalRevenueBadge').textContent = `Total revenue: ${naira.format(totalRevenue)}`;
-      document.getElementById('totalRevenue').textContent = naira.format(totalRevenue);
-      document.getElementById('totalClients').textContent = new Set(revenues.map(item => item.clientName)).size;
-      document.getElementById('ruleStatus').textContent = 'Manual';
-      document.getElementById('progressFill').style.width = '100%';
-    }
-
-    function renderSummary() {
-      const totals = getDistributionTotalsByPerson();
-      summaryTableBody.innerHTML = people.map(person => `
+      document.getElementById('summaryTableBody').innerHTML = people.map(person => `
         <tr>
           <td>${person.name}</td>
-          <td>Custom per revenue</td>
           <td>${naira.format(totals[person.name] || 0)}</td>
         </tr>
       `).join('');
     }
 
     function renderRevenueTable() {
-      revenueTableBody.innerHTML = revenues
-        .slice()
-        .reverse()
-        .map(item => `
-          <tr>
-            <td>${item.date}</td>
-            <td>${item.clientName}</td>
-            <td>${item.channel}</td>
-            <td>${naira.format(item.amount)}</td>
-            <td><button class="ghost" onclick="deleteRevenue(${item.id})">Delete</button></td>
-          </tr>
-        `).join('');
-    }
-
-    function renderDistributionTable() {
-      distributionTableBody.innerHTML = revenues
-        .slice()
-        .reverse()
-        .map(item => {
-          const distributionText = (item.distribution || [])
-            .map(dist => `${dist.name}: ${dist.percentage}% (${naira.format(dist.amount)})`)
-            .join('<br>');
-
-          return `
-            <tr>
-              <td>${item.date}</td>
-              <td>${item.clientName}</td>
-              <td>${naira.format(item.amount)}</td>
-              <td>${distributionText}</td>
-            </tr>
-          `;
-        }).join('');
-    }
-
-    function renderPeopleTable() {
-      peopleTableBody.innerHTML = people.map(person => `
+      document.getElementById('revenueTableBody').innerHTML = revenues.map(item => `
         <tr>
-          <td>${person.name}</td>
-          <td>Manual entry</td>
-          <td>Used when selected</td>
+          <td>${item.revenue_date}</td>
+          <td>${item.client_name}</td>
+          <td>${item.channel}</td>
+          <td>${naira.format(item.amount)}</td>
+          <td><button class="ghost" onclick="deleteRevenue(${item.id})">Delete</button></td>
         </tr>
       `).join('');
     }
 
-    function clearDistributionInputs() {
-      document.querySelectorAll('.distribution-percentage').forEach(input => {
-        input.value = '';
-      });
+    function renderDistributionTable() {
+      document.getElementById('distributionTableBody').innerHTML = revenues.map(item => {
+        const distributionText = (item.distributions || []).map(dist => `${dist.person_name}: ${dist.percentage}% (${naira.format(dist.amount)})`).join('<br>');
+        return `
+          <tr>
+            <td>${item.revenue_date}</td>
+            <td>${item.client_name}</td>
+            <td>${naira.format(item.amount)}</td>
+            <td>${distributionText}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    function buildDistributionForRevenue(amount) {
-      const percentageInputs = Array.from(document.querySelectorAll('.distribution-percentage'));
-      const rawDistribution = percentageInputs
-        .map(input => ({
-          name: input.dataset.personName,
-          percentage: Number(input.value || 0)
-        }))
-        .filter(item => item.percentage > 0);
-
-      if (!rawDistribution.length) {
-        alert('Please assign at least one person a percentage.');
-        return null;
-      }
-
-      const totalPercentage = rawDistribution.reduce((sum, item) => sum + item.percentage, 0);
-      if (Math.abs(totalPercentage - 100) > 0.001) {
-        alert(`Distribution total must equal 100%. It is currently ${totalPercentage}%.`);
-        return null;
-      }
-
-      return rawDistribution.map(item => ({
-        ...item,
-        amount: (Number(amount) * item.percentage) / 100
-      }));
+    function renderPeopleTable() {
+      document.getElementById('peopleTableBody').innerHTML = people.map(person => `
+        <tr>
+          <td>${person.name}</td>
+          <td>Active</td>
+        </tr>
+      `).join('');
     }
 
     function renderAll() {
-      saveData();
       renderDistributionInputs();
       renderDashboard();
       renderSummary();
@@ -376,70 +308,226 @@
       renderPeopleTable();
     }
 
-    document.getElementById('addRevenueBtn').addEventListener('click', () => {
+    async function loadPeople() {
+      const { data, error } = await supabase
+        .from('distribution_people')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      people = data || [];
+    }
+
+    async function loadRevenues() {
+      const { data, error } = await supabase
+        .from('revenues')
+        .select(`
+          id,
+          client_name,
+          revenue_date,
+          channel,
+          reference,
+          amount,
+          created_by,
+          revenue_distributions (
+            id,
+            person_id,
+            person_name,
+            percentage,
+            amount
+          )
+        `)
+        .order('revenue_date', { ascending: false })
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+      revenues = (data || []).map(item => ({
+        ...item,
+        distributions: item.revenue_distributions || []
+      }));
+    }
+
+    async function refreshData() {
+      await loadPeople();
+      await loadRevenues();
+      renderAll();
+    }
+
+    function buildDistribution(amount) {
+      const percentageInputs = Array.from(document.querySelectorAll('.distribution-percentage'));
+      const raw = percentageInputs
+        .map(input => ({
+          person_id: Number(input.dataset.personId),
+          person_name: input.dataset.personName,
+          percentage: Number(input.value || 0)
+        }))
+        .filter(item => item.percentage > 0);
+
+      if (!raw.length) {
+        alert('Please assign at least one person a percentage.');
+        return null;
+      }
+
+      const totalPercentage = raw.reduce((sum, item) => sum + item.percentage, 0);
+      if (Math.abs(totalPercentage - 100) > 0.001) {
+        alert(`Distribution total must equal 100%. It is currently ${totalPercentage}%.`);
+        return null;
+      }
+
+      return raw.map(item => ({
+        ...item,
+        amount: (Number(amount) * item.percentage) / 100
+      }));
+    }
+
+    async function addRevenue() {
       const clientName = document.getElementById('clientName').value.trim();
-      const date = document.getElementById('revenueDate').value;
+      const revenueDateValue = document.getElementById('revenueDate').value;
       const channel = document.getElementById('revenueChannel').value.trim();
       const reference = document.getElementById('revenueReference').value.trim();
       const amount = Number(document.getElementById('revenueAmount').value);
 
-      if (!clientName || !date || !channel || !amount) {
+      if (!clientName || !revenueDateValue || !channel || !amount) {
         alert('Please fill all revenue fields.');
         return;
       }
 
-      const distribution = buildDistributionForRevenue(amount);
+      const distribution = buildDistribution(amount);
       if (!distribution) return;
 
-      revenues.push({
-        id: Date.now(),
-        clientName,
-        date,
-        channel,
-        reference,
-        amount,
-        distribution
-      });
+      const { data: revenueRow, error: revenueError } = await supabase
+        .from('revenues')
+        .insert({
+          client_name: clientName,
+          revenue_date: revenueDateValue,
+          channel,
+          reference,
+          amount,
+          created_by: currentUser.id
+        })
+        .select('id')
+        .single();
+
+      if (revenueError) {
+        alert(revenueError.message);
+        return;
+      }
+
+      const rows = distribution.map(item => ({
+        revenue_id: revenueRow.id,
+        person_id: item.person_id,
+        person_name: item.person_name,
+        percentage: item.percentage,
+        amount: item.amount,
+        created_by: currentUser.id
+      }));
+
+      const { error: distError } = await supabase
+        .from('revenue_distributions')
+        .insert(rows);
+
+      if (distError) {
+        alert(distError.message);
+        return;
+      }
 
       document.getElementById('clientName').value = '';
       document.getElementById('revenueChannel').value = '';
       document.getElementById('revenueReference').value = '';
       document.getElementById('revenueAmount').value = '';
-      clearDistributionInputs();
-      renderAll();
-    });
+      document.querySelectorAll('.distribution-percentage').forEach(input => input.value = '');
 
-    document.getElementById('addPersonBtn').addEventListener('click', () => {
+      await refreshData();
+    }
+
+    async function addPerson() {
       const name = document.getElementById('personName').value.trim();
-      const rateInput = document.getElementById('personRate');
-
       if (!name) {
         alert('Please enter a person name.');
         return;
       }
 
-      const exists = people.some(person => person.name.toLowerCase() === name.toLowerCase());
-      if (exists) {
-        alert('That person already exists.');
+      const { error } = await supabase
+        .from('distribution_people')
+        .insert({
+          name,
+          created_by: currentUser.id
+        });
+
+      if (error) {
+        alert(error.message);
         return;
       }
 
-      people.push({
-        id: Date.now(),
-        name
-      });
-
       document.getElementById('personName').value = '';
-      if (rateInput) rateInput.value = '';
-      renderAll();
-    });
+      await refreshData();
+    }
 
-    function deleteRevenue(id) {
-      revenues = revenues.filter(item => item.id !== id);
-      renderAll();
+    async function deleteRevenue(id) {
+      const { error } = await supabase
+        .from('revenues')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      await refreshData();
     }
 
     window.deleteRevenue = deleteRevenue;
+
+    async function signIn() {
+      if (!ensureSupabase()) return;
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setAuthMessage(error.message, true);
+        return;
+      }
+      setAuthMessage('Signed in successfully.');
+    }
+
+    async function signUp() {
+      if (!ensureSupabase()) return;
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setAuthMessage(error.message, true);
+        return;
+      }
+      setAuthMessage('Account created. Check your email if confirmation is enabled.');
+    }
+
+    async function signOut() {
+      if (!supabase) return;
+      await supabase.auth.signOut();
+    }
+
+    async function handleSession(session) {
+      currentUser = session?.user || null;
+      if (!currentUser) {
+        sessionBadge.textContent = 'Not signed in';
+        appShell.style.display = 'none';
+        signOutBtn.style.display = 'none';
+        return;
+      }
+
+      sessionBadge.textContent = currentUser.email || 'Signed in';
+      appShell.style.display = 'block';
+      signOutBtn.style.display = 'inline-block';
+      await refreshData();
+    }
+
+    document.getElementById('signInBtn').addEventListener('click', signIn);
+    document.getElementById('signUpBtn').addEventListener('click', signUp);
+    document.getElementById('signOutBtn').addEventListener('click', signOut);
+    document.getElementById('addRevenueBtn').addEventListener('click', addRevenue);
+    document.getElementById('addPersonBtn').addEventListener('click', addPerson);
 
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
@@ -450,7 +538,14 @@
       });
     });
 
-    renderAll();
+    (async function boot() {
+      if (!ensureSupabase()) return;
+      const { data } = await supabase.auth.getSession();
+      await handleSession(data.session);
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        await handleSession(session);
+      });
+    })();
   </script>
 </body>
 </html>
