@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Funds Channel Tracker</title>
+  <title>Client Revenue Distribution Tracker</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,23 +11,23 @@
     <div class="wrapper">
       <div class="header">
         <div>
-          <h1>Funds Channel Tracker</h1>
-          <p>Track money received by channel and apportion it automatically.</p>
+          <h1>Client Revenue Distribution Tracker</h1>
+          <p>Record client revenue and automatically show how each payment is distributed.</p>
         </div>
-        <div class="badge" id="totalReceivedBadge">Total received: ₦0</div>
+        <div class="badge" id="totalRevenueBadge">Total revenue: ₦0</div>
       </div>
 
       <div class="stats-grid">
         <div class="card">
-          <h3>Banked / Digital</h3>
-          <div class="amount" id="bankedTotal">₦0</div>
+          <h3>Total Revenue</h3>
+          <div class="amount" id="totalRevenue">₦0</div>
         </div>
         <div class="card">
-          <h3>Cash Received</h3>
-          <div class="amount" id="cashTotal">₦0</div>
+          <h3>Total Clients</h3>
+          <div class="amount" id="totalClients">0</div>
         </div>
         <div class="card">
-          <h3>Apportion Rule Status</h3>
+          <h3>Distribution Rule Status</h3>
           <div class="amount" id="ruleStatus">0%</div>
           <div class="progress-track">
             <div class="progress-fill" id="progressFill" style="width: 0%"></div>
@@ -38,95 +38,121 @@
 
       <div class="tabs">
         <button class="tab-button active" data-tab="overview">Overview</button>
-        <button class="tab-button" data-tab="transactions">Transactions</button>
-        <button class="tab-button" data-tab="settings">Channels & Rules</button>
+        <button class="tab-button" data-tab="revenue">Revenue Entry</button>
+        <button class="tab-button" data-tab="distributions">Distribution Report</button>
+        <button class="tab-button" data-tab="settings">People & Rules</button>
       </div>
 
       <div id="overview" class="tab-content">
         <div class="grid-5">
           <div class="card">
-            <h2>Channel Summary</h2>
+            <h2>Revenue Summary by Person</h2>
             <table>
               <thead>
                 <tr>
-                  <th>Channel</th>
-                  <th>Received</th>
-                  <th>Apportioned</th>
-                  <th>Variance</th>
+                  <th>Person</th>
+                  <th>Share Rule</th>
+                  <th>Distributed Amount</th>
                 </tr>
               </thead>
               <tbody id="summaryTableBody"></tbody>
             </table>
           </div>
           <div class="card">
-            <h2>Funds by Channel</h2>
-            <div class="chart-box" id="chartBox">Chart placeholder for GitHub version</div>
+            <h2>Quick Overview</h2>
+            <div class="chart-box" id="chartBox">Client revenue and distribution summary</div>
           </div>
         </div>
       </div>
 
-      <div id="transactions" class="tab-content" style="display:none;">
+      <div id="revenue" class="tab-content" style="display:none;">
         <div class="grid-2">
           <div class="card">
-            <h2>Add Transaction</h2>
+            <h2>Record Client Revenue</h2>
             <div class="form-group">
-              <label for="transactionDate">Date</label>
-              <input type="date" id="transactionDate" />
+              <label for="clientName">Client Name</label>
+              <input type="text" id="clientName" placeholder="e.g. Heirs Insurance" />
             </div>
             <div class="form-group">
-              <label for="transactionChannel">Channel</label>
-              <select id="transactionChannel"></select>
+              <label for="revenueDate">Date</label>
+              <input type="date" id="revenueDate" />
             </div>
             <div class="form-group">
-              <label for="transactionAmount">Amount</label>
-              <input type="number" id="transactionAmount" placeholder="Enter amount" />
+              <label for="revenueChannel">Revenue Channel</label>
+              <input type="text" id="revenueChannel" placeholder="e.g. Transfer, POS, Cash" />
             </div>
-            <button id="addTransactionBtn">Save Transaction</button>
+            <div class="form-group">
+              <label for="revenueReference">Reference</label>
+              <input type="text" id="revenueReference" placeholder="e.g. Payment reference" />
+            </div>
+            <div class="form-group">
+              <label for="revenueAmount">Amount</label>
+              <input type="number" id="revenueAmount" placeholder="Enter amount" />
+            </div>
+            <button id="addRevenueBtn">Save Revenue</button>
           </div>
 
           <div class="card">
-            <h2>Recent Transactions</h2>
+            <h2>Revenue Records</h2>
             <table>
               <thead>
                 <tr>
                   <th>Date</th>
+                  <th>Client</th>
                   <th>Channel</th>
                   <th>Amount</th>
                   <th>Action</th>
                 </tr>
               </thead>
-              <tbody id="transactionsTableBody"></tbody>
+              <tbody id="revenueTableBody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div id="distributions" class="tab-content" style="display:none;">
+        <div class="card">
+          <h2>Distribution Report per Revenue</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Total Revenue</th>
+                <th>Distribution</th>
+              </tr>
+            </thead>
+            <tbody id="distributionTableBody"></tbody>
+          </table>
         </div>
       </div>
 
       <div id="settings" class="tab-content" style="display:none;">
         <div class="grid-2">
           <div class="card">
-            <h2>Add Channel</h2>
+            <h2>Add Distribution Person</h2>
             <div class="form-group">
-              <label for="channelName">Channel name</label>
-              <input type="text" id="channelName" placeholder="e.g. WhatsApp Sales" />
+              <label for="personName">Person Name</label>
+              <input type="text" id="personName" placeholder="e.g. Person 4" />
             </div>
             <div class="form-group">
-              <label for="channelRate">Apportion percentage</label>
-              <input type="number" id="channelRate" placeholder="e.g. 25" />
+              <label for="personRate">Distribution Percentage</label>
+              <input type="number" id="personRate" placeholder="e.g. 25" />
             </div>
-            <button id="addChannelBtn">Add Channel</button>
+            <button id="addPersonBtn">Add Person</button>
           </div>
 
           <div class="card">
-            <h2>Active Channels</h2>
+            <h2>Active Distribution Rules</h2>
             <table>
               <thead>
                 <tr>
-                  <th>Channel</th>
+                  <th>Person</th>
                   <th>Rule</th>
                   <th>Share</th>
                 </tr>
               </thead>
-              <tbody id="channelsTableBody"></tbody>
+              <tbody id="peopleTableBody"></tbody>
             </table>
           </div>
         </div>
@@ -141,172 +167,197 @@
       maximumFractionDigits: 0
     });
 
-    let channels = JSON.parse(localStorage.getItem('channels')) || [
-      { id: 1, name: 'person 1', rate: 50 },
-      { id: 2, name: 'person 2', rate: 30 },
-      { id: 3, name: 'person 3', rate: 20 }
+    let people = JSON.parse(localStorage.getItem('people')) || [
+      { id: 1, name: 'Person 1', rate: 50 },
+      { id: 2, name: 'Person 2', rate: 30 },
+      { id: 3, name: 'Person 3', rate: 20 }
     ];
 
-    let transactions = JSON.parse(localStorage.getItem('transactions')) || [
-      { id: 1, date: '2026-04-01', channel: 'Bank Transfer', amount: 250000 },
-      { id: 2, date: '2026-04-01', channel: 'person 2', amount: 120000 },
-      { id: 3, date: '2026-04-02', channel: 'person 3', amount: 80000 },
-      { id: 4, date: '2026-04-02', channel: 'person 1', amount: 150000 }
+    let revenues = JSON.parse(localStorage.getItem('revenues')) || [
+      {
+        id: 1,
+        clientName: 'Heirs Insurance',
+        date: '2026-04-04',
+        channel: 'Transfer',
+        reference: 'HIR-001',
+        amount: 250000
+      },
+      {
+        id: 2,
+        clientName: 'Premium Client A',
+        date: '2026-04-04',
+        channel: 'POS',
+        reference: 'PCA-002',
+        amount: 120000
+      }
     ];
 
-    const totalReceivedBadge = document.getElementById('totalReceivedBadge');
-    const bankedTotal = document.getElementById('bankedTotal');
-    const cashTotal = document.getElementById('cashTotal');
-    const ruleStatus = document.getElementById('ruleStatus');
-    const progressFill = document.getElementById('progressFill');
-    const summaryTableBody = document.getElementById('summaryTableBody');
-    const transactionsTableBody = document.getElementById('transactionsTableBody');
-    const channelsTableBody = document.getElementById('channelsTableBody');
-    const transactionChannel = document.getElementById('transactionChannel');
-
-    const transactionDate = document.getElementById('transactionDate');
-    transactionDate.value = new Date().toISOString().split('T')[0];
+    const revenueDate = document.getElementById('revenueDate');
+    revenueDate.value = new Date().toISOString().split('T')[0];
 
     function saveData() {
-      localStorage.setItem('channels', JSON.stringify(channels));
-      localStorage.setItem('transactions', JSON.stringify(transactions));
+      localStorage.setItem('people', JSON.stringify(people));
+      localStorage.setItem('revenues', JSON.stringify(revenues));
     }
 
     function getTotalRate() {
-      return channels.reduce((sum, c) => sum + Number(c.rate || 0), 0);
+      return people.reduce((sum, person) => sum + Number(person.rate || 0), 0);
     }
 
-    function getTotalReceived() {
-      return transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    function getTotalRevenue() {
+      return revenues.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     }
 
-    function populateChannelOptions() {
-      transactionChannel.innerHTML = channels
-        .map(channel => `<option value="${channel.name}">${channel.name}</option>`)
-        .join('');
+    function calculateDistribution(amount) {
+      const totalRate = getTotalRate();
+      return people.map(person => ({
+        name: person.name,
+        rate: person.rate,
+        amount: totalRate > 0 ? (Number(amount) * Number(person.rate || 0)) / totalRate : 0
+      }));
+    }
+
+    function renderDashboard() {
+      const totalRevenue = getTotalRevenue();
+      const totalRate = getTotalRate();
+      document.getElementById('totalRevenueBadge').textContent = `Total revenue: ${naira.format(totalRevenue)}`;
+      document.getElementById('totalRevenue').textContent = naira.format(totalRevenue);
+      document.getElementById('totalClients').textContent = new Set(revenues.map(item => item.clientName)).size;
+      document.getElementById('ruleStatus').textContent = `${totalRate}%`;
+      document.getElementById('progressFill').style.width = `${Math.min(totalRate, 100)}%`;
     }
 
     function renderSummary() {
-      const totalReceived = getTotalReceived();
+      const totalRevenue = getTotalRevenue();
       const totalRate = getTotalRate();
-      const cashReceived = transactions
-        .filter(t => t.channel === 'Cash')
-        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-      const bankedReceived = transactions
-        .filter(t => t.channel !== 'Cash')
-        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-      totalReceivedBadge.textContent = `Total received: ${naira.format(totalReceived)}`;
-      bankedTotal.textContent = naira.format(bankedReceived);
-      cashTotal.textContent = naira.format(cashReceived);
-      ruleStatus.textContent = `${totalRate}%`;
-      progressFill.style.width = `${Math.min(totalRate, 100)}%`;
-
-      summaryTableBody.innerHTML = channels.map(channel => {
-        const received = transactions
-          .filter(t => t.channel === channel.name)
-          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-        const apportioned = totalRate > 0 ? (totalReceived * Number(channel.rate || 0)) / totalRate : 0;
-        const variance = received - apportioned;
-        const varianceClass = variance >= 0 ? 'text-success' : 'text-danger';
-
+      document.getElementById('summaryTableBody').innerHTML = people.map(person => {
+        const distributedAmount = totalRate > 0 ? (totalRevenue * Number(person.rate || 0)) / totalRate : 0;
         return `
           <tr>
-            <td>${channel.name}</td>
-            <td>${naira.format(received)}</td>
-            <td>${naira.format(apportioned)}</td>
-            <td class="${varianceClass}">${naira.format(variance)}</td>
+            <td>${person.name}</td>
+            <td>${person.rate}%</td>
+            <td>${naira.format(distributedAmount)}</td>
           </tr>
         `;
       }).join('');
     }
 
-    function renderTransactions() {
-      transactionsTableBody.innerHTML = transactions
+    function renderRevenueTable() {
+      document.getElementById('revenueTableBody').innerHTML = revenues
         .slice()
         .reverse()
         .map(item => `
           <tr>
             <td>${item.date}</td>
+            <td>${item.clientName}</td>
             <td>${item.channel}</td>
             <td>${naira.format(item.amount)}</td>
-            <td><button class="ghost" onclick="deleteTransaction(${item.id})">Delete</button></td>
+            <td><button class="ghost" onclick="deleteRevenue(${item.id})">Delete</button></td>
           </tr>
         `).join('');
     }
 
-    function renderChannels() {
+    function renderDistributionTable() {
+      document.getElementById('distributionTableBody').innerHTML = revenues
+        .slice()
+        .reverse()
+        .map(item => {
+          const distributionText = calculateDistribution(item.amount)
+            .map(dist => `${dist.name}: ${naira.format(dist.amount)}`)
+            .join('<br>');
+
+          return `
+            <tr>
+              <td>${item.date}</td>
+              <td>${item.clientName}</td>
+              <td>${naira.format(item.amount)}</td>
+              <td>${distributionText}</td>
+            </tr>
+          `;
+        }).join('');
+    }
+
+    function renderPeopleTable() {
       const totalRate = getTotalRate();
-      channelsTableBody.innerHTML = channels.map(channel => `
+      document.getElementById('peopleTableBody').innerHTML = people.map(person => `
         <tr>
-          <td>${channel.name}</td>
-          <td>${channel.rate}%</td>
-          <td>${totalRate > 0 ? ((channel.rate / totalRate) * 100).toFixed(1) : 0}% of pool</td>
+          <td>${person.name}</td>
+          <td>${person.rate}%</td>
+          <td>${totalRate > 0 ? ((person.rate / totalRate) * 100).toFixed(1) : 0}% of pool</td>
         </tr>
       `).join('');
     }
 
     function renderAll() {
       saveData();
-      populateChannelOptions();
+      renderDashboard();
       renderSummary();
-      renderTransactions();
-      renderChannels();
+      renderRevenueTable();
+      renderDistributionTable();
+      renderPeopleTable();
     }
 
-    document.getElementById('addTransactionBtn').addEventListener('click', () => {
-      const date = document.getElementById('transactionDate').value;
-      const channel = document.getElementById('transactionChannel').value;
-      const amount = Number(document.getElementById('transactionAmount').value);
+    document.getElementById('addRevenueBtn').addEventListener('click', () => {
+      const clientName = document.getElementById('clientName').value.trim();
+      const date = document.getElementById('revenueDate').value;
+      const channel = document.getElementById('revenueChannel').value.trim();
+      const reference = document.getElementById('revenueReference').value.trim();
+      const amount = Number(document.getElementById('revenueAmount').value);
 
-      if (!date || !channel || !amount) {
-        alert('Please fill all transaction fields.');
+      if (!clientName || !date || !channel || !amount) {
+        alert('Please fill all revenue fields.');
         return;
       }
 
-      transactions.push({
+      revenues.push({
         id: Date.now(),
+        clientName,
         date,
         channel,
+        reference,
         amount
       });
 
-      document.getElementById('transactionAmount').value = '';
+      document.getElementById('clientName').value = '';
+      document.getElementById('revenueChannel').value = '';
+      document.getElementById('revenueReference').value = '';
+      document.getElementById('revenueAmount').value = '';
       renderAll();
     });
 
-    document.getElementById('addChannelBtn').addEventListener('click', () => {
-      const name = document.getElementById('channelName').value.trim();
-      const rate = Number(document.getElementById('channelRate').value);
+    document.getElementById('addPersonBtn').addEventListener('click', () => {
+      const name = document.getElementById('personName').value.trim();
+      const rate = Number(document.getElementById('personRate').value);
 
       if (!name || !rate) {
-        alert('Please fill all channel fields.');
+        alert('Please fill all person fields.');
         return;
       }
 
-      const exists = channels.some(channel => channel.name.toLowerCase() === name.toLowerCase());
+      const exists = people.some(person => person.name.toLowerCase() === name.toLowerCase());
       if (exists) {
-        alert('That channel already exists.');
+        alert('That person already exists.');
         return;
       }
 
-      channels.push({
+      people.push({
         id: Date.now(),
         name,
         rate
       });
 
-      document.getElementById('channelName').value = '';
-      document.getElementById('channelRate').value = '';
+      document.getElementById('personName').value = '';
+      document.getElementById('personRate').value = '';
       renderAll();
     });
 
-    function deleteTransaction(id) {
-      transactions = transactions.filter(item => item.id !== id);
+    function deleteRevenue(id) {
+      revenues = revenues.filter(item => item.id !== id);
       renderAll();
     }
 
-    window.deleteTransaction = deleteTransaction;
+    window.deleteRevenue = deleteRevenue;
 
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
