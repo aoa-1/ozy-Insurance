@@ -166,6 +166,20 @@
                 <input type="text" id="personName" placeholder="e.g. Person 4" />
               </div>
               <button id="addPersonBtn">Add Person</button>
+
+              <div id="editPersonPanel" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #e2e8f0;">
+                <h3>Edit Person</h3>
+                <input type="hidden" id="editPersonId" />
+                <div class="form-group">
+                  <label for="editPersonName">New Name</label>
+                  <input type="text" id="editPersonName" placeholder="Enter new name" />
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button id="savePersonEditBtn">Save Changes</button>
+                  <button id="cancelPersonEditBtn" class="ghost">Cancel</button>
+                </div>
+              </div>
+
               <div class="small-note">People added here become selectable during revenue distribution.</div>
             </div>
 
@@ -176,6 +190,7 @@
                   <tr>
                     <th>Name</th>
                     <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody id="peopleTableBody"></tbody>
@@ -295,6 +310,10 @@
         <tr>
           <td>${person.name}</td>
           <td>Active</td>
+          <td>
+            <button class="ghost" onclick="editPerson(${person.id}, '${person.name.replace(/'/g, "\'")}')">Edit</button>
+            <button class="ghost" onclick="deletePerson(${person.id})">Delete</button>
+          </td>
         </tr>
       `).join('');
     }
@@ -447,6 +466,12 @@
         return;
       }
 
+      const existing = people.find(person => person.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        alert('That person already exists.');
+        return;
+      }
+
       const { error } = await supabase
         .from('distribution_people')
         .insert({
@@ -460,6 +485,85 @@
       }
 
       document.getElementById('personName').value = '';
+      await refreshData();
+    }
+
+    function editPerson(id, currentName) {
+      document.getElementById('editPersonId').value = id;
+      document.getElementById('editPersonName').value = currentName;
+      document.getElementById('editPersonPanel').style.display = 'block';
+    }
+
+    function cancelEditPerson() {
+      document.getElementById('editPersonId').value = '';
+      document.getElementById('editPersonName').value = '';
+      document.getElementById('editPersonPanel').style.display = 'none';
+    }
+
+    async function savePersonEdit() {
+      const id = Number(document.getElementById('editPersonId').value);
+      const cleanedName = document.getElementById('editPersonName').value.trim();
+
+      if (!id) {
+        alert('No person selected for editing.');
+        return;
+      }
+
+      if (!cleanedName) {
+        alert('Person name cannot be empty.');
+        return;
+      }
+
+      const existing = people.find(person => person.name.toLowerCase() === cleanedName.toLowerCase() && person.id !== id);
+      if (existing) {
+        alert('That person name already exists.');
+        return;
+      }
+
+      const { error: personError } = await supabase
+        .from('distribution_people')
+        .update({ name: cleanedName })
+        .eq('id', id);
+
+      if (personError) {
+        alert(personError.message);
+        return;
+      }
+
+      const { error: distError } = await supabase
+        .from('revenue_distributions')
+        .update({ person_name: cleanedName })
+        .eq('person_id', id);
+
+      if (distError) {
+        alert(distError.message);
+        return;
+      }
+
+      cancelEditPerson();
+      await refreshData();
+    }
+
+    async function deletePerson(id) {
+      const hasUsage = revenues.some(revenue => (revenue.distributions || []).some(item => Number(item.person_id) === Number(id)));
+      if (hasUsage) {
+        alert('This person has already been used in revenue distributions and cannot be deleted until those related records are removed.');
+        return;
+      }
+
+      const confirmed = confirm('Delete this person?');
+      if (!confirmed) return;
+
+      const { error } = await supabase
+        .from('distribution_people')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
       await refreshData();
     }
 
@@ -478,6 +582,8 @@
     }
 
     window.deleteRevenue = deleteRevenue;
+    window.editPerson = editPerson;
+    window.deletePerson = deletePerson;
 
     async function signIn() {
       if (!ensureSupabase()) return;
@@ -528,6 +634,8 @@
     document.getElementById('signOutBtn').addEventListener('click', signOut);
     document.getElementById('addRevenueBtn').addEventListener('click', addRevenue);
     document.getElementById('addPersonBtn').addEventListener('click', addPerson);
+    document.getElementById('savePersonEditBtn').addEventListener('click', savePersonEdit);
+    document.getElementById('cancelPersonEditBtn').addEventListener('click', cancelEditPerson);
 
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
