@@ -231,7 +231,7 @@
     }
 
     function ensureSupabase() {
-      if (!SUPABASE_URL || SUPABASE_URL.includes 'https://mwqabcqefabzzhmfxytn.supabase.co' || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13cWFiY3FlZmFienpobWZ4eXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDI4NDAsImV4cCI6MjA5MDg3ODg0MH0.RlgA_XUhAxuSeWkkPQYHmKHKo72LlZJBv99ZlcQF5EI') {
+      if (!SUPABASE_URL || SUPABASE_URL.includes ('https://mwqabcqefabzzhmfxytn.supabase.co') || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes ('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13cWFiY3FlZmFienpobWZ4eXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDI4NDAsImV4cCI6MjA5MDg3ODg0MH0.RlgA_XUhAxuSeWkkPQYHmKHKo72LlZJBv99ZlcQF5EI')) {
         setAuthMessage('Add your Supabase URL and anon key first.', true);
         return false;
       }
