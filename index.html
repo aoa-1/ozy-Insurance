@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Client Revenue Distribution Tracker</title>
+  <title>Ozy Investments</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -168,19 +168,24 @@
     });
 
     let people = JSON.parse(localStorage.getItem('people')) || [
-      { id: 1, name: 'Person 1', rate: 50 },
-      { id: 2, name: 'Person 2', rate: 30 },
-      { id: 3, name: 'Person 3', rate: 20 }
+      { id: 1, name: 'Person 1' },
+      { id: 2, name: 'Person 2' },
+      { id: 3, name: 'Person 3' }
     ];
 
-    let revenues = JSON.parse(localStorage.getItem('revenues')) || [
+    let revenues = JSON.parse(localStorage.getItem('revenues_manual_distribution')) || [
       {
         id: 1,
         clientName: 'Heirs Insurance',
         date: '2026-04-04',
         channel: 'Transfer',
         reference: 'HIR-001',
-        amount: 250000
+        amount: 250000,
+        distribution: [
+          { name: 'Person 1', percentage: 50, amount: 125000 },
+          { name: 'Person 2', percentage: 30, amount: 75000 },
+          { name: 'Person 3', percentage: 20, amount: 50000 }
+        ]
       },
       {
         id: 2,
@@ -188,63 +193,104 @@
         date: '2026-04-04',
         channel: 'POS',
         reference: 'PCA-002',
-        amount: 120000
+        amount: 120000,
+        distribution: [
+          { name: 'Person 1', percentage: 20, amount: 24000 },
+          { name: 'Person 2', percentage: 40, amount: 48000 },
+          { name: 'Person 3', percentage: 40, amount: 48000 }
+        ]
       }
     ];
 
     const revenueDate = document.getElementById('revenueDate');
     revenueDate.value = new Date().toISOString().split('T')[0];
 
+    const revenueCard = document.querySelector('#revenue .card');
+    const peopleCard = document.querySelector('#settings .card');
+    const revenueTableBody = document.getElementById('revenueTableBody');
+    const distributionTableBody = document.getElementById('distributionTableBody');
+    const summaryTableBody = document.getElementById('summaryTableBody');
+    const peopleTableBody = document.getElementById('peopleTableBody');
+
     function saveData() {
       localStorage.setItem('people', JSON.stringify(people));
-      localStorage.setItem('revenues', JSON.stringify(revenues));
-    }
-
-    function getTotalRate() {
-      return people.reduce((sum, person) => sum + Number(person.rate || 0), 0);
+      localStorage.setItem('revenues_manual_distribution', JSON.stringify(revenues));
     }
 
     function getTotalRevenue() {
       return revenues.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     }
 
-    function calculateDistribution(amount) {
-      const totalRate = getTotalRate();
-      return people.map(person => ({
-        name: person.name,
-        rate: person.rate,
-        amount: totalRate > 0 ? (Number(amount) * Number(person.rate || 0)) / totalRate : 0
-      }));
+    function getDistributionTotalsByPerson() {
+      const totals = {};
+      people.forEach(person => {
+        totals[person.name] = 0;
+      });
+
+      revenues.forEach(revenue => {
+        (revenue.distribution || []).forEach(item => {
+          totals[item.name] = (totals[item.name] || 0) + Number(item.amount || 0);
+        });
+      });
+
+      return totals;
+    }
+
+    function ensureDistributionBuilder() {
+      if (!document.getElementById('distributionInputs')) {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `
+          <div class="form-group">
+            <label>Manual Distribution</label>
+            <div id="distributionInputs"></div>
+            <div class="small-note" id="distributionNote">Assign a percentage to each person for this specific revenue entry. Total should be 100%.</div>
+          </div>
+        `;
+        revenueCard.insertBefore(wrapper, document.getElementById('addRevenueBtn'));
+      }
+
+      if (!document.getElementById('peopleActionNote')) {
+        const note = document.createElement('div');
+        note.id = 'peopleActionNote';
+        note.className = 'small-note';
+        note.textContent = 'People added here become available for manual distribution on each revenue entry.';
+        peopleCard.appendChild(note);
+      }
+    }
+
+    function renderDistributionInputs() {
+      ensureDistributionBuilder();
+      const container = document.getElementById('distributionInputs');
+      container.innerHTML = people.map(person => `
+        <div class="form-group">
+          <label for="dist_${person.id}">${person.name} Percentage</label>
+          <input type="number" id="dist_${person.id}" class="distribution-percentage" data-person-name="${person.name}" placeholder="Enter percentage for ${person.name}" min="0" max="100" step="0.01" />
+        </div>
+      `).join('');
     }
 
     function renderDashboard() {
       const totalRevenue = getTotalRevenue();
-      const totalRate = getTotalRate();
       document.getElementById('totalRevenueBadge').textContent = `Total revenue: ${naira.format(totalRevenue)}`;
       document.getElementById('totalRevenue').textContent = naira.format(totalRevenue);
       document.getElementById('totalClients').textContent = new Set(revenues.map(item => item.clientName)).size;
-      document.getElementById('ruleStatus').textContent = `${totalRate}%`;
-      document.getElementById('progressFill').style.width = `${Math.min(totalRate, 100)}%`;
+      document.getElementById('ruleStatus').textContent = 'Manual';
+      document.getElementById('progressFill').style.width = '100%';
     }
 
     function renderSummary() {
-      const totalRevenue = getTotalRevenue();
-      const totalRate = getTotalRate();
-
-      document.getElementById('summaryTableBody').innerHTML = people.map(person => {
-        const distributedAmount = totalRate > 0 ? (totalRevenue * Number(person.rate || 0)) / totalRate : 0;
-        return `
-          <tr>
-            <td>${person.name}</td>
-            <td>${person.rate}%</td>
-            <td>${naira.format(distributedAmount)}</td>
-          </tr>
-        `;
-      }).join('');
+      const totals = getDistributionTotalsByPerson();
+      summaryTableBody.innerHTML = people.map(person => `
+        <tr>
+          <td>${person.name}</td>
+          <td>Custom per revenue</td>
+          <td>${naira.format(totals[person.name] || 0)}</td>
+        </tr>
+      `).join('');
     }
 
     function renderRevenueTable() {
-      document.getElementById('revenueTableBody').innerHTML = revenues
+      revenueTableBody.innerHTML = revenues
         .slice()
         .reverse()
         .map(item => `
@@ -259,12 +305,12 @@
     }
 
     function renderDistributionTable() {
-      document.getElementById('distributionTableBody').innerHTML = revenues
+      distributionTableBody.innerHTML = revenues
         .slice()
         .reverse()
         .map(item => {
-          const distributionText = calculateDistribution(item.amount)
-            .map(dist => `${dist.name}: ${naira.format(dist.amount)}`)
+          const distributionText = (item.distribution || [])
+            .map(dist => `${dist.name}: ${dist.percentage}% (${naira.format(dist.amount)})`)
             .join('<br>');
 
           return `
@@ -279,18 +325,50 @@
     }
 
     function renderPeopleTable() {
-      const totalRate = getTotalRate();
-      document.getElementById('peopleTableBody').innerHTML = people.map(person => `
+      peopleTableBody.innerHTML = people.map(person => `
         <tr>
           <td>${person.name}</td>
-          <td>${person.rate}%</td>
-          <td>${totalRate > 0 ? ((person.rate / totalRate) * 100).toFixed(1) : 0}% of pool</td>
+          <td>Manual entry</td>
+          <td>Used when selected</td>
         </tr>
       `).join('');
     }
 
+    function clearDistributionInputs() {
+      document.querySelectorAll('.distribution-percentage').forEach(input => {
+        input.value = '';
+      });
+    }
+
+    function buildDistributionForRevenue(amount) {
+      const percentageInputs = Array.from(document.querySelectorAll('.distribution-percentage'));
+      const rawDistribution = percentageInputs
+        .map(input => ({
+          name: input.dataset.personName,
+          percentage: Number(input.value || 0)
+        }))
+        .filter(item => item.percentage > 0);
+
+      if (!rawDistribution.length) {
+        alert('Please assign at least one person a percentage.');
+        return null;
+      }
+
+      const totalPercentage = rawDistribution.reduce((sum, item) => sum + item.percentage, 0);
+      if (Math.abs(totalPercentage - 100) > 0.001) {
+        alert(`Distribution total must equal 100%. It is currently ${totalPercentage}%.`);
+        return null;
+      }
+
+      return rawDistribution.map(item => ({
+        ...item,
+        amount: (Number(amount) * item.percentage) / 100
+      }));
+    }
+
     function renderAll() {
       saveData();
+      renderDistributionInputs();
       renderDashboard();
       renderSummary();
       renderRevenueTable();
@@ -310,28 +388,33 @@
         return;
       }
 
+      const distribution = buildDistributionForRevenue(amount);
+      if (!distribution) return;
+
       revenues.push({
         id: Date.now(),
         clientName,
         date,
         channel,
         reference,
-        amount
+        amount,
+        distribution
       });
 
       document.getElementById('clientName').value = '';
       document.getElementById('revenueChannel').value = '';
       document.getElementById('revenueReference').value = '';
       document.getElementById('revenueAmount').value = '';
+      clearDistributionInputs();
       renderAll();
     });
 
     document.getElementById('addPersonBtn').addEventListener('click', () => {
       const name = document.getElementById('personName').value.trim();
-      const rate = Number(document.getElementById('personRate').value);
+      const rateInput = document.getElementById('personRate');
 
-      if (!name || !rate) {
-        alert('Please fill all person fields.');
+      if (!name) {
+        alert('Please enter a person name.');
         return;
       }
 
@@ -343,12 +426,11 @@
 
       people.push({
         id: Date.now(),
-        name,
-        rate
+        name
       });
 
       document.getElementById('personName').value = '';
-      document.getElementById('personRate').value = '';
+      if (rateInput) rateInput.value = '';
       renderAll();
     });
 
